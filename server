@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+
+from sys import argv as argv
+import socket
+import struct
+import os
+
+
+URL = "127.0.0.1"
+port = 4242
+
+
+def send_msg(sock, msg):
+    if type(msg) is str:
+        msg = bytes(msg, 'utf-8')
+    msg = struct.pack('>I', len(msg)) + msg
+    sock.sendall(msg)
+
+
+def recv_msg(sock):
+    raw_msglen = recvall(sock, 4)
+    if not raw_msglen:
+        return None
+    msglen = struct.unpack('>I', raw_msglen)[0]
+    return recvall(sock, msglen)
+
+
+def recvall(sock, n):
+    data = b''
+    while len(data) < n:
+        packet = sock.recv(n - len(data))
+        if not packet:
+            return None
+        data += packet
+    return data
+
+
+def main(av):
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind((URL,port))
+    server.listen(1)
+
+    cnx_client, cnx_info = server.accept()
+    print(cnx_info, "is connected")
+
+    while True:
+        msg = input(">>")
+        if len(msg) > 0:
+            if msg == "quit":
+                send_msg(cnx_client, msg)
+                break
+            if msg[:-1] == "&":
+                send_msg(cnx_client, msg)
+            else:
+                send_msg(cnx_client, msg)
+                data = recv_msg(cnx_client)
+                print("debug")
+                print(data.decode("utf-8"))
+    server.close()
+
+
+if __name__ == "__main__":
+    exit(main(argv))
